@@ -1,0 +1,1762 @@
+-- ╔══════════════════════════════════════════════════╗
+-- ║            E L I A N A   H U B                  ║
+-- ║       Murder Mystery 2 · Fresh Rewrite          ║
+-- ║       Theme: Dark Purple / Pink · v1.0          ║
+-- ╚══════════════════════════════════════════════════╝
+
+repeat task.wait() until game:IsLoaded()
+
+-- ══════════════════════════════════════════
+-- SERVICES
+-- ══════════════════════════════════════════
+local Players         = game:GetService("Players")
+local RunService      = game:GetService("RunService")
+local UserInputService= game:GetService("UserInputService")
+local ReplicatedStorage= game:GetService("ReplicatedStorage")
+local TeleportService = game:GetService("TeleportService")
+local TextChatService = game:GetService("TextChatService")
+local VirtualUser     = game:GetService("VirtualUser")
+local StarterGui      = game:GetService("StarterGui")
+local Workspace       = game:GetService("Workspace")
+
+local LocalPlayer = Players.LocalPlayer
+local Camera      = Workspace.CurrentCamera
+local cloneref    = (cloneref or clonereference or function(i) return i end)
+
+-- ══════════════════════════════════════════
+-- LOAD WindUI
+-- ══════════════════════════════════════════
+local WindUI = loadstring(game:HttpGet(
+    "https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"
+))()
+
+-- ══════════════════════════════════════════
+-- Mozql THEME  (deep purple + hot pink)
+-- ══════════════════════════════════════════
+WindUI:AddTheme({
+    ["Name"]        = "Mozql",
+    ["Accent"]      = "#2a0a3e",        -- deep dark purple
+    ["Dialog"]      = "#1e0830",
+    ["Outline"]     = "#e040fb",        -- vivid pink-purple
+    ["Text"]        = "#ffe4f8",        -- soft pink-white
+    ["Placeholder"] = "#c084d8",
+    ["Background"]  = "#120520",        -- near-black purple
+    ["Button"]      = "#7b1fa2",        -- medium purple
+    ["Icon"]        = "#f48fb1",        -- rose pink
+})
+
+WindUI:AddTheme({
+    ["Name"]        = "PinkGlow",
+    ["Accent"]      = "#880e4f",
+    ["Dialog"]      = "#4a0030",
+    ["Outline"]     = "#ff80ab",
+    ["Text"]        = "#ffffff",
+    ["Placeholder"] = "#f48fb1",
+    ["Background"]  = "#1a0012",
+    ["Button"]      = "#c2185b",
+    ["Icon"]        = "#ff4081",
+})
+
+WindUI:AddTheme({
+    ["Name"]        = "Dark",
+    ["Accent"]      = "#18181b",
+    ["Dialog"]      = "#18181b",
+    ["Outline"]     = "#FFFFFF",
+    ["Text"]        = "#FFFFFF",
+    ["Placeholder"] = "#999999",
+    ["Background"]  = "#0e0e10",
+    ["Button"]      = "#52525b",
+    ["Icon"]        = "#a1a1aa",
+})
+
+WindUI:SetNotificationLower(true)
+
+-- ══════════════════════════════════════════
+-- NOTIFICATION HELPER
+-- ══════════════════════════════════════════
+local function Notify(title, text, duration)
+    duration = duration or 4
+    pcall(function()
+        StarterGui:SetCore("SendNotification", {
+            Title    = title or "Mozql Hub",
+            Text     = text  or "",
+            Duration = duration,
+            Icon     = "rbxassetid://89804924525665",
+        })
+    end)
+end
+
+-- ══════════════════════════════════════════
+-- MAIN WINDOW
+-- ══════════════════════════════════════════
+local ThemeList  = {"Mozql", "PinkGlow", "Dark"}
+local ThemeIndex = 1
+
+local Window = WindUI:CreateWindow({
+    ["Title"]                    = "Mozql Hub",
+    ["Icon"]                     = "sparkles",
+    ["Author"]                   = "OP Keyless",
+    ["Folder"]                   = "MozqlHub",
+    ["Size"]                     = UDim2.fromOffset(520, 360),
+    ["Transparent"]              = true,
+    ["Theme"]                    = "Mozql",
+    ["Resizable"]                = true,
+    ["SideBarWidth"]             = 155,
+    ["BackgroundImageTransparency"] = 0.85,
+    ["HideSearchBar"]            = false,
+    ["User"] = {
+        ["Enabled"]  = true,
+        ["Anonymous"]= false,
+        ["Callback"] = function()
+            ThemeIndex = ThemeIndex % #ThemeList + 1
+            WindUI:SetTheme(ThemeList[ThemeIndex])
+            WindUI:Notify({ Title="Theme", Content="→ "..ThemeList[ThemeIndex], Duration=2, Icon="palette" })
+        end,
+    },
+})
+
+Window:EditOpenButton({
+    ["Title"]          = "Mozql Hub",
+    ["CornerRadius"]   = UDim.new(0, 8),
+    ["StrokeThickness"]= 2,
+    ["Color"]          = ColorSequence.new(Color3.fromRGB(180, 0, 120), Color3.fromRGB(100, 0, 180)),
+    ["Draggable"]      = true,
+})
+Window.ToggleKey = Enum.KeyCode.R
+
+Notify("Mozql Hub", "Loaded! Toggle: R key", 6)
+
+-- ══════════════════════════════════════════
+-- TABS
+-- ══════════════════════════════════════════
+local Tab = {}
+Tab.Combat   = Window:Tab({ Title="Combat",   Icon="sword",        Desc="Combat features"   })
+Tab.Visual   = Window:Tab({ Title="Visual",   Icon="eye",          Desc="ESP & highlights"  })
+Tab.Teleport = Window:Tab({ Title="Teleport", Icon="map",          Desc="Teleport options"  })
+Tab.Farm     = Window:Tab({ Title="Farm",     Icon="coins",        Desc="Farming tools"     })
+Tab.Misc     = Window:Tab({ Title="Misc",     Icon="wrench",       Desc="Misc utilities"    })
+Tab.Players  = Window:Tab({ Title="Players",  Icon="users",        Desc="Player tools"      })
+
+-- ══════════════════════════════════════════
+-- SHARED HELPERS
+-- ══════════════════════════════════════════
+local function GetChar()    return LocalPlayer.Character end
+local function GetRoot()
+    local c = GetChar()
+    return c and c:FindFirstChild("HumanoidRootPart")
+end
+local function GetHum()
+    local c = GetChar()
+    return c and c:FindFirstChildOfClass("Humanoid")
+end
+
+local function FindMurderer()
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character then
+            if p.Backpack:FindFirstChild("Knife") or p.Character:FindFirstChild("Knife") then
+                return p
+            end
+        end
+    end
+end
+
+local function FindSheriff()
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character then
+            if p.Backpack:FindFirstChild("Gun") or p.Character:FindFirstChild("Gun") then
+                return p
+            end
+        end
+    end
+end
+
+local function SendChat(msg)
+    pcall(function()
+        local tc = TextChatService:FindFirstChild("TextChannels")
+        if tc and tc:FindFirstChild("RBXGeneral") then
+            tc.RBXGeneral:SendAsync(msg)
+        else
+            local ce = ReplicatedStorage:FindFirstChild("DefaultChatSystemChatEvents")
+            if ce then ce.SayMessageRequest:FireServer(msg, "All") end
+        end
+    end)
+end
+
+-- ╔══════════════════════════════════════════╗
+-- ║              COMBAT TAB                 ║
+-- ╚══════════════════════════════════════════╝
+
+-- ── Silent Gun Aim ──────────────────────────
+Tab.Combat:Section({ Title="Gun" })
+
+local GunSilentEnabled = false
+local GunSilentConn = nil
+local _G_GunArgs = nil
+
+local function FireGun()
+    if not _G_GunArgs then return end
+    local gun = GetChar() and GetChar():FindFirstChild("Gun")
+    local remote = gun and gun:FindFirstChild("Shoot")
+    if remote then remote:FireServer(table.unpack(_G_GunArgs)) end
+end
+
+Tab.Combat:Toggle({
+    Title    = "Gun Silent Aim",
+    Value    = false,
+    Callback = function(s)
+        GunSilentEnabled = s
+        if GunSilentConn then GunSilentConn:Disconnect() end
+        if not s then _G_GunArgs = nil return end
+        GunSilentConn = RunService.RenderStepped:Connect(function()
+            local target = FindMurderer()
+            if not (target and target.Character) then _G_GunArgs = nil return end
+            local tr = target.Character:FindFirstChild("HumanoidRootPart")
+            local mr = GetRoot()
+            if not (tr and mr) then return end
+            local pred = tr.CFrame + (tr.Velocity * 0.125)
+            _G_GunArgs = { mr.CFrame, pred }
+        end)
+    end,
+})
+
+Tab.Combat:Toggle({
+    Title    = "Gun Aimbot (click to fire)",
+    Value    = false,
+    Callback = function(s)
+        if s then
+            UserInputService.InputBegan:Connect(function(inp, gp)
+                if gp then return end
+                if inp.UserInputType == Enum.UserInputType.MouseButton1 then
+                    FireGun()
+                end
+            end)
+            UserInputService.TouchTap:Connect(function() FireGun() end)
+        end
+    end,
+})
+
+-- ── Flick Shot Button ─────────────────────
+local FlickGui = nil
+local FlickEnabled = false
+
+local function CreateFlickGui()
+    if FlickGui then return end
+    FlickGui = Instance.new("ScreenGui")
+    FlickGui.Name = "MozqlFlick"
+    FlickGui.ResetOnSpawn = false
+    FlickGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.fromOffset(90, 90)
+    btn.Position = UDim2.new(0.85, 0, 0.70, 0)
+    btn.BackgroundColor3 = Color3.fromRGB(18, 6, 30)
+    btn.BackgroundTransparency = 0.35
+    btn.Text = ""
+    btn.Parent = FlickGui
+
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(1, 0)
+    local stroke = Instance.new("UIStroke", btn)
+    stroke.Thickness = 2
+    stroke.Color = Color3.fromRGB(224, 64, 251)
+    stroke.Transparency = 0.2
+
+    local icon = Instance.new("ImageLabel")
+    icon.Size = UDim2.fromScale(0.65, 0.65)
+    icon.Position = UDim2.fromScale(0.175, 0.175)
+    icon.BackgroundTransparency = 1
+    icon.Image = "rbxassetid://139650104834071"
+    icon.ImageColor3 = Color3.fromRGB(240, 100, 220)
+    icon.Parent = btn
+
+    btn.MouseButton1Click:Connect(function()
+        local char = GetChar()
+        local bp = LocalPlayer:FindFirstChild("Backpack")
+        if not char or not bp then return end
+        local gun = bp:FindFirstChild("Gun") or char:FindFirstChild("Gun")
+        if not gun then return end
+        gun.Parent = char
+        task.wait()
+        local remote = gun:FindFirstChild("Shoot")
+        local target = FindMurderer()
+        if remote and target and target.Character then
+            local tr = target.Character:FindFirstChild("HumanoidRootPart")
+            local mr = GetRoot()
+            if tr and mr then
+                local pred = tr.CFrame + (tr.Velocity * 0.125)
+                remote:FireServer(mr.CFrame, pred)
+            end
+        end
+        task.wait()
+        gun.Parent = bp
+    end)
+end
+
+Tab.Combat:Toggle({
+    Title    = "Flick Shot Button",
+    Value    = false,
+    Callback = function(s)
+        if s then
+            CreateFlickGui()
+        else
+            if FlickGui then FlickGui:Destroy() FlickGui = nil end
+        end
+    end,
+})
+
+-- ── Aimlock ───────────────────────────────
+Tab.Combat:Section({ Title="Aimlock" })
+
+local AimlockEnabled = false
+local AimlockConn = nil
+
+local function GetClosestToCenter()
+    local mid = Camera.ViewportSize / 2
+    local best, bestDist = nil, math.huge
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character then
+            local root = p.Character:FindFirstChild("HumanoidRootPart")
+            if root then
+                local sp, onScreen = Camera:WorldToViewportPoint(root.Position)
+                if onScreen then
+                    local d = (Vector2.new(sp.X, sp.Y) - mid).Magnitude
+                    if d < bestDist then best = root bestDist = d end
+                end
+            end
+        end
+    end
+    return best
+end
+
+Tab.Combat:Toggle({
+    Title    = "Aimlock (Murderer Priority)",
+    Value    = false,
+    Callback = function(s)
+        AimlockEnabled = s
+        if AimlockConn then AimlockConn:Disconnect() end
+        if not s then return end
+        AimlockConn = RunService.RenderStepped:Connect(function()
+            if not AimlockEnabled then return end
+            -- prioritise murderer
+            local murd = FindMurderer()
+            local target = murd and murd.Character and murd.Character:FindFirstChild("HumanoidRootPart")
+            if not target then target = GetClosestToCenter() end
+            if target then
+                Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Position)
+            end
+        end)
+    end,
+})
+
+-- ── Knife / Kill ──────────────────────────
+Tab.Combat:Section({ Title="Knife" })
+
+Tab.Combat:Button({
+    Title    = "Kill All (hold knife)",
+    Callback = function()
+        local char = GetChar()
+        local bp = LocalPlayer:FindFirstChild("Backpack")
+        if not char or not bp then return end
+        local knife = char:FindFirstChild("Knife") or bp:FindFirstChild("Knife")
+        if not knife then Notify("Mozql", "You need a knife!") return end
+        local hum = GetHum()
+        local mr  = GetRoot()
+        if not (hum and mr) then return end
+        if knife.Parent == bp then hum:EquipTool(knife) task.wait() end
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and p.Character then
+                local er = p.Character:FindFirstChild("HumanoidRootPart")
+                if er then er.Anchored = true er.CFrame = mr.CFrame * CFrame.new(0,0,-2) end
+            end
+        end
+        local stab = knife:FindFirstChild("Stab")
+        if stab then stab:FireServer("Slash") end
+        task.wait(0.1)
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p.Character then
+                local er = p.Character:FindFirstChild("HumanoidRootPart")
+                if er then er.Anchored = false end
+            end
+        end
+        if knife.Parent == char then knife.Parent = bp end
+    end,
+})
+
+Tab.Combat:Button({
+    Title    = "Kill Sheriff (hold knife)",
+    Callback = function()
+        loadstring(game:HttpGet("https://pastefy.app/YBXds1as/raw"))("true")
+    end,
+})
+
+Tab.Combat:Button({
+    Title    = "Kill Innocents (hold knife)",
+    Callback = function()
+        loadstring(game:HttpGet("https://pastefy.app/vmG5vtCc/raw"))("true")
+    end,
+})
+
+Tab.Combat:Button({
+    Title    = "Shoot Murderer (sheriff)",
+    Callback = function()
+        loadstring(game:HttpGet("https://pastefy.app/IeVSJS2e/raw"))("true")
+    end,
+})
+
+-- ── Hitbox ────────────────────────────────
+Tab.Combat:Section({ Title="Hitbox" })
+
+local HitboxEnabled = false
+local HitboxSize    = 5
+local HitboxColor   = Color3.new(1, 0, 0.6)
+local HitboxAdorn   = {}
+local HitboxConn    = nil
+
+local function UpdateHitboxes()
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer then
+            local char = p.Character
+            local root = char and char:FindFirstChild("HumanoidRootPart")
+            local ador = HitboxAdorn[p]
+            if root and HitboxEnabled then
+                if ador then
+                    ador.Size   = Vector3.one * HitboxSize
+                    ador.Color3 = HitboxColor
+                else
+                    local a = Instance.new("BoxHandleAdornment")
+                    a.Adornee      = root
+                    a.Size         = Vector3.one * HitboxSize
+                    a.Color3       = HitboxColor
+                    a.Transparency = 0.45
+                    a.ZIndex       = 10
+                    a.Parent       = root
+                    HitboxAdorn[p] = a
+                end
+            elseif ador then
+                ador:Destroy()
+                HitboxAdorn[p] = nil
+            end
+        end
+    end
+end
+
+Tab.Combat:Toggle({
+    Title    = "Hitbox Expander",
+    Value    = false,
+    Callback = function(s)
+        HitboxEnabled = s
+        if s then
+            if not HitboxConn then
+                HitboxConn = RunService.Heartbeat:Connect(UpdateHitboxes)
+            end
+        else
+            if HitboxConn then HitboxConn:Disconnect() HitboxConn = nil end
+            for _, a in pairs(HitboxAdorn) do if a then a:Destroy() end end
+            HitboxAdorn = {}
+        end
+    end,
+})
+
+Tab.Combat:Slider({
+    Title    = "Hitbox Size",
+    Value    = { Min=1, Max=25, Default=5 },
+    Callback = function(v) HitboxSize = v end,
+})
+
+Tab.Combat:Colorpicker({
+    Title    = "Hitbox Color",
+    Default  = Color3.new(1, 0, 0.6),
+    Callback = function(c) HitboxColor = c end,
+})
+
+-- ── Get Gun ──────────────────────────────
+Tab.Combat:Section({ Title="Sheriff" })
+
+Tab.Combat:Button({
+    Title    = "Get Gun Drop",
+    Callback = function()
+        local char = GetChar()
+        if not char then return end
+        local touch = char:FindFirstChild("LeftFoot") or char:FindFirstChild("HumanoidRootPart")
+        if not touch then return end
+        for _, v in ipairs(Workspace:GetDescendants()) do
+            if v.Name == "GunDrop" then
+                pcall(firetouchinterest, touch, v, 0)
+                task.wait()
+                pcall(firetouchinterest, touch, v, 1)
+                Notify("Mozql", "Gun acquired!")
+                return
+            end
+        end
+        Notify("Mozql", "No gun drop found.")
+    end,
+})
+
+Tab.Combat:Toggle({
+    Title    = "Auto Get Gun",
+    Value    = false,
+    Callback = function(s)
+        getgenv().MozqlAutoGun = s
+        if s then
+            task.spawn(function()
+                while getgenv().MozqlAutoGun do
+                    local char = GetChar()
+                    local root = GetRoot()
+                    if char and root then
+                        local nearest, nearDist = nil, math.huge
+                        for _, v in ipairs(Workspace:GetDescendants()) do
+                            if v.Name == "GunDrop" and v:IsA("BasePart") then
+                                local d = (root.Position - v.Position).Magnitude
+                                if d < nearDist then nearest = v nearDist = d end
+                            end
+                        end
+                        if nearest then
+                            local orig = root.Position
+                            root.CFrame = nearest.CFrame
+                            task.wait(0.1)
+                            root.CFrame = CFrame.new(orig)
+                        end
+                    end
+                    task.wait(1)
+                end
+            end)
+        end
+    end,
+})
+
+-- ╔══════════════════════════════════════════╗
+-- ║              VISUAL (ESP) TAB           ║
+-- ╚══════════════════════════════════════════╝
+
+Tab.Visual:Section({ Title="ESP" })
+
+do -- register-safe block
+    local Cfg = {
+        Master     = false,
+        Highlight  = true,
+        Labels     = true,
+        Lines      = false,
+        Murderer   = true,
+        Sheriff    = true,
+        Innocent   = true,
+        Guns       = true,
+        ChamsAlpha = 0.5,
+    }
+
+    local Colors = {
+        Murder     = Color3.fromRGB(255, 50,  150),
+        Sheriff    = Color3.fromRGB(80,  160, 255),
+        Innocent   = Color3.fromRGB(100, 255, 180),
+        DroppedGun = Color3.fromRGB(255, 230, 60),
+    }
+
+    local PlayerESP = {}
+    local GunESP    = {}
+    local RoleCache = {}
+    local GunCache  = {}
+
+    local Pool = {Box={}, Text={}, Line={}}
+
+    local function Acquire(kind)
+        if #Pool[kind] > 0 then
+            local d = table.remove(Pool[kind])
+            d.Visible = false
+            return d
+        end
+        local map = {Box="Square", Text="Text", Line="Line"}
+        return Drawing.new(map[kind])
+    end
+
+    local function Release(kind, d)
+        if not d then return end
+        d.Visible = false
+        table.insert(Pool[kind], d)
+    end
+
+    local function RemoveHL(entry)
+        if entry and entry.HL then
+            pcall(function() entry.HL:Destroy() end)
+            entry.HL = nil
+        end
+    end
+
+    local function DestroyEntry(entry)
+        if not entry then return end
+        Release("Box",  entry.Box)
+        Release("Text", entry.Text)
+        Release("Line", entry.Line)
+        RemoveHL(entry)
+    end
+
+    local function NewEntry()
+        local box = Acquire("Box")
+        box.Thickness = 1.6
+        box.Filled = false
+        box.Transparency = 1
+
+        local text = Acquire("Text")
+        text.Size = 17
+        text.Center = true
+        text.Outline = true
+        text.Font = 2
+
+        local line = Acquire("Line")
+        line.Thickness = 1.5
+        line.Transparency = 0.8
+
+        return { Box=box, Text=text, Line=line, HL=nil }
+    end
+
+    local function GetRole(p)
+        local function scan(loc)
+            if not loc then return nil end
+            for _, item in ipairs(loc:GetChildren()) do
+                if item:IsA("Tool") then
+                    local n = item.Name:lower()
+                    if n:find("knife") then return "Murder" end
+                    if n:find("gun") or n:find("revolver") then return "Sheriff" end
+                end
+            end
+        end
+        return scan(p.Character) or scan(p:FindFirstChild("Backpack")) or "Innocent"
+    end
+
+    local function EnsureHL(entry, adornee, color)
+        if entry.HL then
+            entry.HL.FillTransparency = Cfg.ChamsAlpha
+            return
+        end
+        local h = Instance.new("Highlight")
+        h.FillColor          = color
+        h.OutlineColor       = color
+        h.FillTransparency   = Cfg.ChamsAlpha
+        h.OutlineTransparency= 0.15
+        h.DepthMode          = Enum.HighlightDepthMode.AlwaysOnTop
+        h.Adornee            = adornee
+        h.Parent             = adornee
+        entry.HL = h
+    end
+
+    local function CleanAll()
+        for _, e in pairs(PlayerESP) do DestroyEntry(e) end
+        for _, e in pairs(GunESP)    do DestroyEntry(e) end
+        table.clear(PlayerESP)
+        table.clear(GunESP)
+        table.clear(RoleCache)
+    end
+
+    -- gun tracking
+    for _, v in ipairs(Workspace:GetDescendants()) do
+        if v.Name == "GunDrop" and v:IsA("BasePart") then GunCache[v] = true end
+    end
+    Workspace.DescendantAdded:Connect(function(d)
+        if d.Name == "GunDrop" and d:IsA("BasePart") then GunCache[d] = true end
+    end)
+    Workspace.DescendantRemoving:Connect(function(d)
+        if d.Name == "GunDrop" and d:IsA("BasePart") then
+            GunCache[d] = nil
+            if GunESP[d] then DestroyEntry(GunESP[d]) GunESP[d] = nil end
+        end
+    end)
+
+    Players.PlayerRemoving:Connect(function(p)
+        if PlayerESP[p] then DestroyEntry(PlayerESP[p]) PlayerESP[p] = nil end
+        RoleCache[p] = nil
+    end)
+
+    local function ESPUpdate()
+        if not Cfg.Master then return end
+        local mid = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p == LocalPlayer then continue end
+            local char = p.Character
+            local root = char and char:FindFirstChild("HumanoidRootPart")
+            local hum  = char and char:FindFirstChildOfClass("Humanoid")
+            local alive= hum and hum.Health > 0
+
+            if not (char and root and alive) then
+                if PlayerESP[p] then DestroyEntry(PlayerESP[p]) PlayerESP[p] = nil RoleCache[p] = nil end
+                continue
+            end
+
+            local role = GetRole(p)
+            local show = (role=="Murder" and Cfg.Murderer) or (role=="Sheriff" and Cfg.Sheriff) or (role=="Innocent" and Cfg.Innocent)
+
+            if not show then
+                if PlayerESP[p] then DestroyEntry(PlayerESP[p]) PlayerESP[p] = nil end
+                continue
+            end
+
+            if not PlayerESP[p] then PlayerESP[p] = NewEntry() end
+            local entry = PlayerESP[p]
+            local sp, onScreen = Camera:WorldToViewportPoint(root.Position)
+            local c = Colors[role]
+
+            if onScreen then
+                if Cfg.Highlight then
+                    EnsureHL(entry, char, c)
+                else
+                    RemoveHL(entry)
+                end
+
+                entry.Box.Visible  = true
+                entry.Box.Color    = c
+                entry.Box.Position = Vector2.new(sp.X-22, sp.Y-32)
+                entry.Box.Size     = Vector2.new(44, 64)
+
+                entry.Text.Visible  = Cfg.Labels
+                entry.Text.Text     = "["..role:upper().."] "..p.Name
+                entry.Text.Color    = c
+                entry.Text.Position = Vector2.new(sp.X, sp.Y - 52)
+
+                entry.Line.Visible  = Cfg.Lines
+                entry.Line.From     = mid
+                entry.Line.To       = Vector2.new(sp.X, sp.Y)
+                entry.Line.Color    = c
+            else
+                entry.Box.Visible  = false
+                entry.Text.Visible = false
+                entry.Line.Visible = false
+                RemoveHL(entry)
+            end
+        end
+
+        if Cfg.Guns then
+            for gun in pairs(GunCache) do
+                if not (gun.Parent and gun:IsDescendantOf(Workspace)) then
+                    if GunESP[gun] then DestroyEntry(GunESP[gun]) GunESP[gun] = nil end
+                    GunCache[gun] = nil
+                    continue
+                end
+                if not GunESP[gun] then GunESP[gun] = NewEntry() end
+                local entry = GunESP[gun]
+                local gp, onScreen = Camera:WorldToViewportPoint(gun.Position)
+                local c = Colors.DroppedGun
+                if Cfg.Highlight then EnsureHL(entry, gun, c) end
+                if onScreen then
+                    entry.Box.Visible  = true
+                    entry.Box.Color    = c
+                    entry.Box.Position = Vector2.new(gp.X-12, gp.Y-12)
+                    entry.Box.Size     = Vector2.new(24, 24)
+                    entry.Text.Visible = Cfg.Labels
+                    entry.Text.Text    = "[ GUN ]"
+                    entry.Text.Color   = c
+                    entry.Text.Position= Vector2.new(gp.X, gp.Y-30)
+                    entry.Line.Visible = Cfg.Lines
+                    entry.Line.From    = mid
+                    entry.Line.To      = Vector2.new(gp.X, gp.Y)
+                    entry.Line.Color   = c
+                else
+                    entry.Box.Visible  = false
+                    entry.Text.Visible = false
+                    entry.Line.Visible = false
+                end
+            end
+        end
+    end
+
+    -- WindUI Controls
+    Tab.Visual:Toggle({
+        Title    = "Master ESP",
+        Value    = false,
+        Callback = function(s) Cfg.Master = s if not s then CleanAll() end end,
+    })
+
+    Tab.Visual:Dropdown({
+        Title     = "ESP Visuals",
+        Values    = {"Highlight","Labels","Tracers"},
+        Value     = {"Highlight","Labels"},
+        Multi     = true,
+        AllowNone = true,
+        Callback  = function(sel)
+            Cfg.Highlight = false Cfg.Labels = false Cfg.Lines = false
+            for _, v in pairs(sel) do
+                if v=="Highlight" then Cfg.Highlight=true end
+                if v=="Labels"    then Cfg.Labels=true    end
+                if v=="Tracers"   then Cfg.Lines=true     end
+            end
+            if not Cfg.Highlight then
+                for _, e in pairs(PlayerESP) do RemoveHL(e) end
+                for _, e in pairs(GunESP)    do RemoveHL(e) end
+            end
+        end,
+    })
+
+    Tab.Visual:Dropdown({
+        Title     = "Show Roles",
+        Values    = {"Murderer","Sheriff","Innocent","Gun Drops"},
+        Value     = {"Murderer","Sheriff","Innocent","Gun Drops"},
+        Multi     = true,
+        AllowNone = true,
+        Callback  = function(sel)
+            Cfg.Murderer=false Cfg.Sheriff=false Cfg.Innocent=false Cfg.Guns=false
+            for _, v in pairs(sel) do
+                if v=="Murderer"  then Cfg.Murderer=true  end
+                if v=="Sheriff"   then Cfg.Sheriff=true   end
+                if v=="Innocent"  then Cfg.Innocent=true  end
+                if v=="Gun Drops" then Cfg.Guns=true      end
+            end
+        end,
+    })
+
+    Tab.Visual:Slider({
+        Title    = "Chams Opacity",
+        Value    = { Min=0, Max=1, Default=0.5 },
+        Callback = function(v)
+            Cfg.ChamsAlpha = v
+            for _, e in pairs(PlayerESP) do if e.HL then e.HL.FillTransparency = v end end
+            for _, e in pairs(GunESP)    do if e.HL then e.HL.FillTransparency = v end end
+        end,
+    })
+
+    RunService.Heartbeat:Connect(function()
+        if Cfg.Master then pcall(ESPUpdate) end
+    end)
+end
+
+-- ── Expose / Notify Roles ─────────────────
+Tab.Visual:Section({ Title="Expose Roles" })
+
+local function ExposeRole(weapon, label)
+    for _, p in pairs(Players:GetPlayers()) do
+        if (p.Character and p.Character:FindFirstChild(weapon)) or
+           (p.Backpack and p.Backpack:FindFirstChild(weapon)) then
+            SendChat(label..": "..p.Name)
+            return true
+        end
+    end
+    return false
+end
+
+Tab.Visual:Button({ Title="Expose Murderer", Callback=function() ExposeRole("Knife","Murderer") end })
+Tab.Visual:Button({ Title="Expose Sheriff",  Callback=function() ExposeRole("Gun","Sheriff")   end })
+
+do
+    local function AutoExpose(title, weapon, label)
+        local conn = nil
+        Tab.Visual:Toggle({
+            Title    = "Auto "..title,
+            Value    = false,
+            Callback = function(s)
+                if s then
+                    conn = RunService.Heartbeat:Connect(function()
+                        if ExposeRole(weapon, label) and conn then conn:Disconnect() conn=nil end
+                    end)
+                elseif conn then conn:Disconnect() conn=nil end
+            end,
+        })
+    end
+    AutoExpose("Expose Murderer", "Knife", "Murderer")
+    AutoExpose("Expose Sheriff",  "Gun",   "Sheriff")
+end
+
+Tab.Visual:Section({ Title="Notify Roles" })
+
+local function NotifyRole(weapon, label)
+    for _, p in pairs(Players:GetPlayers()) do
+        if (p.Character and p.Character:FindFirstChild(weapon)) or
+           (p.Backpack and p.Backpack:FindFirstChild(weapon)) then
+            Notify("Mozql Hub", label..": "..p.Name)
+            return true
+        end
+    end
+    return false
+end
+
+Tab.Visual:Button({ Title="Notify Murderer", Callback=function() NotifyRole("Knife","Murderer") end })
+Tab.Visual:Button({ Title="Notify Sheriff",  Callback=function() NotifyRole("Gun","Sheriff")   end })
+
+-- ── Spectate ──────────────────────────────
+Tab.Visual:Section({ Title="Spectate" })
+
+Tab.Visual:Button({
+    Title    = "Spectate Murderer",
+    Callback = function()
+        local m = FindMurderer()
+        if m and m.Character then
+            local h = m.Character:FindFirstChildOfClass("Humanoid")
+            if h then Camera.CameraSubject = h return end
+        end
+        Notify("Mozql", "Murderer not found.")
+    end,
+})
+
+Tab.Visual:Button({
+    Title    = "Spectate Sheriff",
+    Callback = function()
+        local s = FindSheriff()
+        if s and s.Character then
+            local h = s.Character:FindFirstChildOfClass("Humanoid")
+            if h then Camera.CameraSubject = h return end
+        end
+        Notify("Mozql", "Sheriff not found.")
+    end,
+})
+
+Tab.Visual:Button({
+    Title    = "Stop Spectating",
+    Callback = function()
+        local char = GetChar()
+        local h = char and char:FindFirstChildOfClass("Humanoid")
+        if h then Camera.CameraSubject = h end
+    end,
+})
+
+-- ── FOV ───────────────────────────────────
+Tab.Visual:Section({ Title="Camera" })
+
+local fovSlider = Tab.Visual:Slider({
+    Title    = "Field of View",
+    Step     = 1,
+    Value    = { Min=30, Max=120, Default=70 },
+    Callback = function(v) Camera.FieldOfView = v end,
+})
+
+Tab.Visual:Button({
+    Title    = "Reset FOV",
+    Icon     = "refresh-cw",
+    Callback = function()
+        fovSlider:Set(70)
+        Camera.FieldOfView = 70
+    end,
+})
+
+-- ╔══════════════════════════════════════════╗
+-- ║             TELEPORT TAB                ║
+-- ╚══════════════════════════════════════════╝
+
+Tab.Teleport:Section({ Title="Quick Teleport" })
+
+Tab.Teleport:Button({
+    Title    = "Teleport to Murderer",
+    Callback = function()
+        local m = FindMurderer()
+        local mr = GetRoot()
+        if m and m.Character and mr then
+            local tr = m.Character:FindFirstChild("HumanoidRootPart")
+            if tr then mr.CFrame = tr.CFrame end
+        else Notify("Mozql", "Murderer not found.") end
+    end,
+})
+
+Tab.Teleport:Button({
+    Title    = "Teleport to Sheriff",
+    Callback = function()
+        local s = FindSheriff()
+        local mr = GetRoot()
+        if s and s.Character and mr then
+            local tr = s.Character:FindFirstChild("HumanoidRootPart")
+            if tr then mr.CFrame = tr.CFrame end
+        else Notify("Mozql", "Sheriff not found.") end
+    end,
+})
+
+Tab.Teleport:Button({
+    Title    = "Teleport to Lobby",
+    Callback = function()
+        local mr = GetRoot()
+        if mr then mr.CFrame = CFrame.new(-108.5, 142, 0.6) end
+    end,
+})
+
+Tab.Teleport:Button({
+    Title    = "Teleport to Map",
+    Callback = function()
+        loadstring(game:HttpGet("https://pastefy.app/lvZs7ugv/raw"))("true")
+    end,
+})
+
+-- ── Loop TP All ───────────────────────────
+Tab.Teleport:Section({ Title="Loop Teleport" })
+
+local LoopTPAll = false
+
+Tab.Teleport:Toggle({
+    Title    = "Loop TP All Players",
+    Value    = false,
+    Callback = function(s)
+        LoopTPAll = s
+        if s then
+            task.spawn(function()
+                while LoopTPAll do
+                    local mr = GetRoot()
+                    if mr then
+                        for _, p in ipairs(Players:GetPlayers()) do
+                            if p ~= LocalPlayer and p.Character then
+                                local tr = p.Character:FindFirstChild("HumanoidRootPart")
+                                if tr then mr.CFrame = tr.CFrame task.wait(0.1) end
+                            end
+                        end
+                    end
+                    task.wait(0.1)
+                end
+            end)
+        end
+    end,
+})
+
+-- ── Rejoin ────────────────────────────────
+Tab.Teleport:Section({ Title="Server" })
+
+Tab.Teleport:Button({
+    Title    = "Rejoin Server",
+    Callback = function() TeleportService:Teleport(game.PlaceId) end,
+})
+
+Tab.Teleport:Button({
+    Title    = "Server Hop",
+    Callback = function()
+        loadstring(game:HttpGet("https://pastefy.app/uTXUoORd/raw"))()
+    end,
+})
+
+-- ╔══════════════════════════════════════════╗
+-- ║              FARM TAB                   ║
+-- ╚══════════════════════════════════════════╝
+
+Tab.Farm:Section({ Title="Coin Farm" })
+
+local CoinFarmEnabled    = false
+local CoinFarmMode       = "Nearest"
+local TeleportInterval   = 4
+local LastTeleportTime   = 0
+local LastTeleportedCoin = nil
+local CoinContainer      = nil
+
+local function FindCoin(root)
+    local cc = CoinContainer
+    if not cc then return end
+    local best, bestDist = nil, math.huge
+    local all = {}
+    for _, child in ipairs(cc:GetChildren()) do
+        local part = child:IsA("BasePart") and child or (child:IsA("Model") and child.PrimaryPart)
+        if part and part.Parent and part ~= LastTeleportedCoin then
+            if CoinFarmMode == "Nearest" then
+                local d = (root.Position - part.Position).Magnitude
+                if d < bestDist then best = part bestDist = d end
+            else
+                table.insert(all, part)
+            end
+        end
+    end
+    if CoinFarmMode == "Nearest" then return best end
+    if #all > 0 then return all[math.random(1, #all)] end
+end
+
+RunService.Heartbeat:Connect(function()
+    if not (CoinContainer and CoinContainer.Parent) then
+        CoinContainer = Workspace:FindFirstChild("CoinContainer", true)
+    end
+    if not CoinFarmEnabled or not CoinContainer then return end
+    local root = GetRoot()
+    local hum  = GetHum()
+    if not (root and hum and hum.Health > 0) then return end
+    local now = os.clock()
+    if now - LastTeleportTime < TeleportInterval then return end
+    local coin = FindCoin(root)
+    if coin then
+        root.CFrame = coin.CFrame
+        LastTeleportedCoin = coin
+        LastTeleportTime = now
+    end
+end)
+
+Tab.Farm:Toggle({
+    Title    = "Auto Coin Farm",
+    Value    = false,
+    Callback = function(s)
+        CoinFarmEnabled = s
+        if not s then LastTeleportedCoin = nil end
+    end,
+})
+
+Tab.Farm:Dropdown({
+    Title    = "Farm Mode",
+    Values   = {"Nearest","Random"},
+    Value    = "Nearest",
+    Callback = function(v) CoinFarmMode = v end,
+})
+
+Tab.Farm:Slider({
+    Title    = "Teleport Interval (sec)",
+    Step     = 1,
+    Value    = { Min=1, Max=10, Default=4 },
+    Callback = function(v) TeleportInterval = v end,
+})
+
+-- ── Spin ─────────────────────────────────
+Tab.Farm:Section({ Title="Movement Farm" })
+
+local SpinEnabled = false
+local SpinSpeed   = 6
+local SpinConn    = nil
+
+Tab.Farm:Toggle({
+    Title    = "Spin (collect nearby coins)",
+    Value    = false,
+    Callback = function(s)
+        SpinEnabled = s
+        if SpinConn then SpinConn:Disconnect() end
+        if s then
+            local root = GetRoot()
+            if root then
+                SpinConn = RunService.RenderStepped:Connect(function()
+                    if SpinEnabled and root and root.Parent then
+                        root.CFrame = root.CFrame * CFrame.Angles(0, math.rad(SpinSpeed), 0)
+                    end
+                end)
+            end
+        end
+    end,
+})
+
+-- ── Anti-AFK ──────────────────────────────
+local AntiAFKConn = nil
+
+Tab.Farm:Toggle({
+    Title    = "Anti-AFK",
+    Value    = false,
+    Callback = function(s)
+        if s then
+            AntiAFKConn = LocalPlayer.Idled:Connect(function()
+                VirtualUser:Button2Down(Vector2.new(0,0), Camera.CFrame)
+                task.wait(10)
+                VirtualUser:Button2Up(Vector2.new(0,0), Camera.CFrame)
+            end)
+        elseif AntiAFKConn then
+            AntiAFKConn:Disconnect()
+            AntiAFKConn = nil
+        end
+    end,
+})
+
+-- ── God Mode ──────────────────────────────
+Tab.Farm:Section({ Title="Survival" })
+
+Tab.Farm:Button({
+    Title    = "Second Life (unstable)",
+    Callback = function()
+        loadstring(game:HttpGet("https://pastefy.app/FHl36Zg1/raw"))("true")
+    end,
+})
+
+-- ╔══════════════════════════════════════════╗
+-- ║                MISC TAB                 ║
+-- ╚══════════════════════════════════════════╝
+
+Tab.Misc:Section({ Title="Movement" })
+
+-- ── Fly ───────────────────────────────────
+local FlyEnabled   = false
+local FlySpeed     = 50
+local FlyDir       = { f=0, b=0, l=0, r=0 }
+local FlyInputs    = {}
+
+local function StopAnims()
+    pcall(function()
+        local char = GetChar()
+        if not char then return end
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            for _, t in ipairs(hum:GetPlayingAnimationTracks()) do t:Stop(0) end
+        end
+        local animate = char:FindFirstChild("Animate")
+        if animate then animate.Disabled = false end
+    end)
+end
+
+local function StartFly(char)
+    if not char then return end
+    local torso = char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso")
+    local hum   = char:FindFirstChildOfClass("Humanoid")
+    if not (torso and hum) then return end
+
+    for _, c in ipairs(torso:GetChildren()) do
+        if c.Name == "MozqlFly" then c:Destroy() end
+    end
+
+    local bg = Instance.new("BodyGyro", torso)
+    bg.Name = "MozqlFly"
+    bg.P = 20000
+    bg.maxTorque = Vector3.one * math.huge
+    bg.CFrame = torso.CFrame
+
+    local bv = Instance.new("BodyVelocity", torso)
+    bv.Name = "MozqlFly"
+    bv.velocity = Vector3.new(0, 0.1, 0)
+    bv.maxForce = Vector3.one * math.huge
+
+    while FlyEnabled do
+        task.wait()
+        pcall(function()
+            if char.Parent and hum:GetState() ~= Enum.HumanoidStateType.Dead then
+                hum.PlatformStand = true
+                local dir = Vector3.new(FlyDir.l+FlyDir.r, 0, FlyDir.f+FlyDir.b)
+                local world = Camera.CFrame:VectorToWorldSpace(dir).Unit
+                bv.Velocity = dir.Magnitude > 0 and world * FlySpeed or Vector3.new(0, 0.1, 0)
+                bg.CFrame = Camera.CFrame * CFrame.Angles(-math.rad(75)*(FlyDir.f+FlyDir.b), 0, math.rad(30)*(FlyDir.l+FlyDir.r))
+            else
+                FlyEnabled = false
+            end
+        end)
+        if not FlyEnabled then break end
+    end
+
+    pcall(function()
+        bg:Destroy()
+        bv:Destroy()
+        hum.PlatformStand = false
+        StopAnims()
+    end)
+end
+
+Tab.Misc:Input({
+    Title       = "Fly Speed",
+    Placeholder = "50",
+    Callback    = function(t)
+        local n = tonumber(t)
+        if n and n > 0 then FlySpeed = n Notify("Mozql", "Fly speed → "..n) end
+    end,
+})
+
+Tab.Misc:Toggle({
+    Title    = "Fly",
+    Value    = false,
+    Callback = function(s)
+        FlyEnabled = s
+        for _, c in ipairs(FlyInputs) do c:Disconnect() end
+        FlyInputs = {}
+        if s then
+            table.insert(FlyInputs, UserInputService.InputBegan:Connect(function(inp, gp)
+                if gp then return end
+                local k = inp.KeyCode.Name:lower()
+                if k=="w" then FlyDir.f=-1 elseif k=="s" then FlyDir.b=1
+                elseif k=="a" then FlyDir.l=-1 elseif k=="d" then FlyDir.r=1 end
+            end))
+            table.insert(FlyInputs, UserInputService.InputEnded:Connect(function(inp)
+                local k = inp.KeyCode.Name:lower()
+                if k=="w" then FlyDir.f=0 elseif k=="s" then FlyDir.b=0
+                elseif k=="a" then FlyDir.l=0 elseif k=="d" then FlyDir.r=0 end
+            end))
+            if GetChar() then task.spawn(StartFly, GetChar()) end
+            table.insert(FlyInputs, LocalPlayer.CharacterAdded:Connect(function(c)
+                task.wait(0.5)
+                if FlyEnabled then task.spawn(StartFly, c) end
+            end))
+        else
+            FlyDir = { f=0, b=0, l=0, r=0 }
+            local torso = GetChar() and (GetChar():FindFirstChild("UpperTorso") or GetChar():FindFirstChild("Torso"))
+            if torso then
+                for _, c in ipairs(torso:GetChildren()) do
+                    if c.Name == "MozqlFly" then c:Destroy() end
+                end
+            end
+            StopAnims()
+        end
+    end,
+})
+
+-- ── Speed ─────────────────────────────────
+local SpeedToggle = false
+local SpeedValue  = 9
+
+local function ToggleSpeed(s)
+    SpeedToggle = s
+    getgenv().MozqlSpeedToggle = s
+    if s then
+        task.spawn(function()
+            while getgenv().MozqlSpeedToggle do
+                local char = GetChar()
+                local hum  = GetHum()
+                if char and hum and hum.MoveDirection.Magnitude > 0 then
+                    char:TranslateBy(hum.MoveDirection * SpeedValue * RunService.Heartbeat:Wait() * 7)
+                else
+                    task.wait()
+                end
+            end
+        end)
+    end
+end
+
+Tab.Misc:Toggle({
+    Title    = "Speed Bypass",
+    Value    = false,
+    Callback = ToggleSpeed,
+})
+
+Tab.Misc:Slider({
+    Title    = "Speed Value",
+    Step     = 1,
+    Value    = { Min=1, Max=100, Default=9 },
+    Callback = function(v) SpeedValue = v end,
+})
+
+UserInputService.InputBegan:Connect(function(inp, gp)
+    if inp.KeyCode == Enum.KeyCode.V and not gp then
+        ToggleSpeed(not SpeedToggle)
+    end
+end)
+
+-- ── Jump ──────────────────────────────────
+local JumpValue = 200
+
+Tab.Misc:Toggle({
+    Title    = "High Jump",
+    Value    = false,
+    Callback = function(s)
+        getgenv().MozqlJump = s
+        if s then
+            task.spawn(function()
+                while getgenv().MozqlJump do
+                    local hum = GetHum()
+                    local root = GetRoot()
+                    if hum and root and hum:GetState() == Enum.HumanoidStateType.Jumping then
+                        root.CFrame = root.CFrame * CFrame.new(0, JumpValue, 0)
+                    end
+                    task.wait()
+                end
+            end)
+        end
+    end,
+})
+
+Tab.Misc:Slider({
+    Title    = "Jump Boost Value",
+    Step     = 5,
+    Value    = { Min=5, Max=1000, Default=200 },
+    Callback = function(v) JumpValue = v end,
+})
+
+-- ── Noclip ────────────────────────────────
+Tab.Misc:Section({ Title="Noclip" })
+
+local NoclipEnabled = false
+
+Tab.Misc:Toggle({
+    Title    = "Noclip",
+    Value    = false,
+    Callback = function(s)
+        NoclipEnabled = s
+        RunService.Stepped:Connect(function()
+            if NoclipEnabled then
+                local char = GetChar()
+                if char then
+                    for _, p in ipairs(char:GetDescendants()) do
+                        if p:IsA("BasePart") and p.Name ~= "HumanoidRootPart" then
+                            p.CanCollide = false
+                        end
+                    end
+                end
+            end
+        end)
+    end,
+})
+
+-- ── Invisibility ──────────────────────────
+Tab.Misc:Section({ Title="Invisibility" })
+
+local InvisEnabled = false
+local InvisAnimId  = "90878454666108"
+local InvisAnim    = nil
+local InvisAnimConn= nil
+local InvisHBConn  = nil
+
+local function SetTransparency(char, t)
+    if not char then return end
+    local parts = {"Head","UpperTorso","LowerTorso","LeftUpperArm","LeftLowerArm","LeftHand",
+                   "RightUpperArm","RightLowerArm","RightHand","LeftUpperLeg","LeftLowerLeg",
+                   "LeftFoot","RightUpperLeg","RightLowerLeg","RightFoot"}
+    for _, name in ipairs(parts) do
+        local p = char:FindFirstChild(name)
+        if p and p:IsA("BasePart") then p.Transparency = t end
+    end
+end
+
+local function EnableInvis(char)
+    if not char then return end
+    local hum = char:WaitForChild("Humanoid")
+    local animator = hum:FindFirstChildOfClass("Animator")
+    if not animator then return end
+    SetTransparency(char, 0.5)
+    InvisAnimConn = hum.AnimationPlayed:Connect(function(t)
+        if not t.Animation.AnimationId:find(InvisAnimId) then t:Stop() end
+    end)
+    InvisHBConn = RunService.Heartbeat:Connect(function()
+        if InvisEnabled and not (InvisAnim and InvisAnim.IsPlaying) then
+            local a = Instance.new("Animation")
+            a.AnimationId = "rbxassetid://"..InvisAnimId
+            InvisAnim = animator:LoadAnimation(a)
+            InvisAnim:Play()
+            InvisAnim.TimePosition = 0.2
+            InvisAnim:AdjustSpeed(0)
+        end
+    end)
+end
+
+local function DisableInvis(char)
+    if InvisAnimConn then InvisAnimConn:Disconnect() InvisAnimConn=nil end
+    if InvisHBConn   then InvisHBConn:Disconnect()   InvisHBConn=nil  end
+    if InvisAnim     then InvisAnim:Stop()            InvisAnim=nil    end
+    SetTransparency(char, 0)
+end
+
+Tab.Misc:Toggle({
+    Title    = "Invisibility",
+    Value    = false,
+    Callback = function(s)
+        InvisEnabled = s
+        local char = GetChar()
+        if s then EnableInvis(char) else DisableInvis(char) end
+    end,
+})
+
+LocalPlayer.CharacterAdded:Connect(function(c)
+    InvisEnabled = false
+    DisableInvis(c)
+end)
+
+-- ── Universal Scripts ─────────────────────
+Tab.Misc:Section({ Title="Universal Tools" })
+
+Tab.Misc:Button({ Title="Inf Yield",   Callback=function() loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))() end })
+Tab.Misc:Button({ Title="Dex Explorer",Callback=function() loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Classic-Dex-Explorer-21009"))() end })
+Tab.Misc:Button({ Title="Remote Spy",  Callback=function() loadstring(game:HttpGet("https://raw.githubusercontent.com/78n/SimpleSpy/main/SimpleSpySource.lua"))() end })
+Tab.Misc:Button({ Title="f3x Build",   Callback=function() loadstring(game:HttpGet("https://raw.githubusercontent.com/infyiff/backup/refs/heads/main/f3x.lua"))() end })
+Tab.Misc:Button({ Title="Fixcam",      Callback=function() loadstring(game:HttpGet("https://pastefy.app/IrvnCaF2/raw"))() end })
+Tab.Misc:Button({ Title="Mobile Keyboard", Callback=function() loadstring(game:HttpGet("https://raw.githubusercontent.com/advxzivhsjjdhxhsidifvsh/mobkeyboard/main/main.txt", true))() end })
+Tab.Misc:Button({ Title="Godly Spawner", Callback=function() loadstring(game:HttpGet("https://raw.githubusercontent.com/UniversalScripter1/ProjectNexora/refs/heads/main/V3.txt"))() end })
+
+-- ╔══════════════════════════════════════════╗
+-- ║             PLAYERS TAB                 ║
+-- ╚══════════════════════════════════════════╝
+
+local SelectedPlayer = nil
+local OrigCamSubject = Camera.CameraSubject
+
+local function PNotify(text)
+    Notify("Mozql | Players", text)
+end
+
+local function SelectPlayer(name)
+    SelectedPlayer = nil
+    if not name or name == "" then PNotify("No player selected.") return end
+    local lower = name:lower()
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p.Name:lower():find(lower, 1, true) or p.DisplayName:lower():find(lower, 1, true) then
+            SelectedPlayer = p
+            PNotify("Selected: "..p.DisplayName)
+            return
+        end
+    end
+    PNotify("Player not found: "..name)
+end
+
+local function MiniFlling(target)
+    if not target or not target.Character then return end
+    local tr = target.Character:FindFirstChild("HumanoidRootPart")
+    local mr = GetRoot()
+    if tr and mr then
+        getgenv().MozqlOldPos = mr.CFrame
+        tr.Velocity = CFrame.new(tr.Position, mr.Position).LookVector * 120
+    end
+end
+
+-- ── Player Selector ───────────────────────
+Tab.Players:Section({ Title="Select Target" })
+
+Tab.Players:Input({
+    Title       = "Player Name",
+    Placeholder = "Enter player name...",
+    Callback    = function(t) SelectPlayer(t) end,
+})
+
+Tab.Players:Button({
+    Title    = "Select Murderer",
+    Callback = function()
+        local m = FindMurderer()
+        if m then SelectedPlayer = m PNotify("Selected: "..m.Name)
+        else PNotify("Murderer not found.") end
+    end,
+})
+
+Tab.Players:Button({
+    Title    = "Select Sheriff",
+    Callback = function()
+        local s = FindSheriff()
+        if s then SelectedPlayer = s PNotify("Selected: "..s.Name)
+        else PNotify("Sheriff not found.") end
+    end,
+})
+
+-- ── Quick Fling ───────────────────────────
+Tab.Players:Section({ Title="Quick Fling" })
+
+Tab.Players:Button({ Title="Fling Murderer", Callback=function()
+    local m = FindMurderer()
+    if m then MiniFlling(m) else PNotify("Murderer not found.") end
+end })
+
+Tab.Players:Button({ Title="Fling Sheriff", Callback=function()
+    local s = FindSheriff()
+    if s then MiniFlling(s) else PNotify("Sheriff not found.") end
+end })
+
+Tab.Players:Button({ Title="Fix Fling Bug", Callback=function()
+    local root = GetRoot()
+    if root and getgenv().MozqlOldPos then
+        root.CFrame = getgenv().MozqlOldPos
+        PNotify("Position restored.")
+    end
+end })
+
+-- ── Player Actions ────────────────────────
+Tab.Players:Section({ Title="Player Actions" })
+
+Tab.Players:Button({
+    Title    = "Teleport to Player",
+    Callback = function()
+        local mr = GetRoot()
+        if not SelectedPlayer then PNotify("No player selected.") return end
+        local tr = SelectedPlayer.Character and SelectedPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if mr and tr then mr.CFrame = tr.CFrame
+        else PNotify("Could not find target.") end
+    end,
+})
+
+local LoopTP = false
+Tab.Players:Toggle({
+    Title    = "Loop Teleport to Player",
+    Value    = false,
+    Callback = function(s)
+        LoopTP = s
+        if s then
+            if not SelectedPlayer then PNotify("No player selected.") LoopTP=false return end
+            task.spawn(function()
+                while LoopTP and SelectedPlayer and SelectedPlayer.Parent do
+                    local mr = GetRoot()
+                    local tr = SelectedPlayer.Character and SelectedPlayer.Character:FindFirstChild("HumanoidRootPart")
+                    if mr and tr then mr.CFrame = tr.CFrame end
+                    task.wait()
+                end
+            end)
+        end
+    end,
+})
+
+Tab.Players:Button({
+    Title    = "Fling Player",
+    Callback = function()
+        if SelectedPlayer then MiniFlling(SelectedPlayer)
+        else PNotify("No player selected.") end
+    end,
+})
+
+local LoopFling = false
+Tab.Players:Toggle({
+    Title    = "Loop Fling",
+    Value    = false,
+    Callback = function(s)
+        LoopFling = s
+        if s then
+            if not SelectedPlayer then PNotify("No player selected.") LoopFling=false return end
+            task.spawn(function()
+                while LoopFling and SelectedPlayer and SelectedPlayer.Parent do
+                    MiniFlling(SelectedPlayer)
+                    task.wait(0.5)
+                end
+            end)
+        end
+    end,
+})
+
+Tab.Players:Button({
+    Title    = "Spectate Player (3s)",
+    Callback = function()
+        if not SelectedPlayer then PNotify("No player selected.") return end
+        local h = SelectedPlayer.Character and SelectedPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if h then
+            Camera.CameraSubject = h
+            task.delay(3, function() Camera.CameraSubject = OrigCamSubject end)
+        end
+    end,
+})
+
+Tab.Players:Toggle({
+    Title    = "AimLock (Camera)",
+    Value    = false,
+    Callback = function(s)
+        getgenv().MozqlAimCam = s
+        if s then
+            if not SelectedPlayer then PNotify("No player selected.") getgenv().MozqlAimCam=false return end
+            task.spawn(function()
+                while getgenv().MozqlAimCam and SelectedPlayer and SelectedPlayer.Parent do
+                    local head = SelectedPlayer.Character and SelectedPlayer.Character:FindFirstChild("Head")
+                    if head then Camera.CFrame = CFrame.new(Camera.CFrame.Position, head.Position) end
+                    RunService.RenderStepped:Wait()
+                end
+            end)
+        end
+    end,
+})
+
+Tab.Players:Toggle({
+    Title    = "AimLock (Character)",
+    Value    = false,
+    Callback = function(s)
+        getgenv().MozqlAimChar = s
+        if s then
+            if not SelectedPlayer then PNotify("No player selected.") getgenv().MozqlAimChar=false return end
+            task.spawn(function()
+                while getgenv().MozqlAimChar and SelectedPlayer and SelectedPlayer.Parent do
+                    local mr = GetRoot()
+                    local tr = SelectedPlayer.Character and SelectedPlayer.Character:FindFirstChild("HumanoidRootPart")
+                    if mr and tr then mr.CFrame = CFrame.new(mr.Position, tr.Position) end
+                    RunService.Heartbeat:Wait()
+                end
+            end)
+        end
+    end,
+})
+
+-- ── Fling Features ────────────────────────
+Tab.Players:Section({ Title="Fling Tools" })
+
+local FlingAura = false
+Tab.Players:Toggle({
+    Title    = "Fling Aura (nearby)",
+    Value    = false,
+    Callback = function(s)
+        FlingAura = s
+        if s then
+            task.spawn(function()
+                while FlingAura do
+                    local mr = GetRoot()
+                    if mr then
+                        for _, p in pairs(Players:GetPlayers()) do
+                            if p ~= LocalPlayer and p.Character then
+                                local tr = p.Character:FindFirstChild("HumanoidRootPart")
+                                if tr and (mr.Position - tr.Position).Magnitude <= 10 then
+                                    MiniFlling(p)
+                                end
+                            end
+                        end
+                    end
+                    task.wait(0.5)
+                end
+            end)
+        end
+    end,
+})
+
+local ClickFling = false
+Tab.Players:Toggle({
+    Title    = "Click Fling",
+    Value    = false,
+    Callback = function(s) ClickFling = s end,
+})
+
+LocalPlayer:GetMouse().Button1Down:Connect(function()
+    if not ClickFling then return end
+    local target = LocalPlayer:GetMouse().Target
+    if target and target.Parent then
+        local p = Players:FindFirstChild(target.Parent.Name)
+        if p and p ~= LocalPlayer then MiniFlling(p) end
+    end
+end)
+
+local TouchFlingOn = false
+Tab.Players:Toggle({
+    Title    = "Touch Fling",
+    Value    = false,
+    Callback = function(s)
+        TouchFlingOn = s
+        if s then
+            coroutine.wrap(function()
+                local tv = 0.1
+                while TouchFlingOn do
+                    RunService.Heartbeat:Wait()
+                    local root = GetRoot()
+                    if root then
+                        local cv = root.Velocity
+                        root.Velocity = cv * 10000 + Vector3.new(0, 10000, 0)
+                        RunService.RenderStepped:Wait()
+                        if root and root.Parent then root.Velocity = cv end
+                        RunService.Stepped:Wait()
+                        if root and root.Parent then
+                            root.Velocity = cv + Vector3.new(0, tv, 0)
+                            tv = tv * -1
+                        end
+                    end
+                end
+            end)()
+        end
+    end,
+})
+
+local AntiFlingConns = {}
+local AntiFlingOn = false
+
+Tab.Players:Toggle({
+    Title    = "Anti-Fling",
+    Value    = false,
+    Callback = function(s)
+        AntiFlingOn = s
+        for _, c in pairs(AntiFlingConns) do c:Disconnect() end
+        table.clear(AntiFlingConns)
+        if s then
+            local function setupNcForPlayer(p)
+                if p == LocalPlayer then return end
+                local c = RunService.Stepped:Connect(function()
+                    if AntiFlingOn and p.Character then
+                        for _, part in pairs(p.Character:GetDescendants()) do
+                            if part:IsA("BasePart") then part.CanCollide = false end
+                        end
+                    end
+                end)
+                table.insert(AntiFlingConns, c)
+            end
+            for _, p in pairs(Players:GetPlayers()) do setupNcForPlayer(p) end
+            Players.PlayerAdded:Connect(setupNcForPlayer)
+        else
+            for _, p in pairs(Players:GetPlayers()) do
+                if p.Character then
+                    for _, part in pairs(p.Character:GetDescendants()) do
+                        if part:IsA("BasePart") then part.CanCollide = true end
+                    end
+                end
+            end
+        end
+    end,
+})
+
+-- ── Orbit ─────────────────────────────────
+Tab.Players:Section({ Title="Orbit" })
+
+local OrbitOn = false
+Tab.Players:Toggle({
+    Title    = "Orbit Player",
+    Value    = false,
+    Callback = function(s)
+        OrbitOn = s
+        if s then
+            if not SelectedPlayer then PNotify("No player selected.") OrbitOn=false return end
+            task.spawn(function()
+                local angle = 0
+                while OrbitOn and SelectedPlayer and SelectedPlayer.Parent do
+                    local mr = GetRoot()
+                    local tr = SelectedPlayer.Character and SelectedPlayer.Character:FindFirstChild("HumanoidRootPart")
+                    if mr and tr then
+                        angle = angle + 8
+                        mr.CFrame = CFrame.new(tr.Position) * CFrame.Angles(0, math.rad(angle), 0) * CFrame.new(10, 0, 0)
+                    end
+                    RunService.Heartbeat:Wait()
+                end
+            end)
+        end
+    end,
+})
+
+-- ══════════════════════════════════════════
+-- FINALIZE
+-- ══════════════════════════════════════════
+Notify("Mozql Hub", "All features loaded ✦ Toggle: R", 6)
