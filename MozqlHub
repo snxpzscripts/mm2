@@ -31,10 +31,10 @@ local WindUI = loadstring(game:HttpGet(
 ))()
 
 -- ══════════════════════════════════════════
--- Mozql THEME  (deep purple + hot pink)
+-- ELIANA THEME  (deep purple + hot pink)
 -- ══════════════════════════════════════════
 WindUI:AddTheme({
-    ["Name"]        = "Mozql",
+    ["Name"]        = "Eliana",
     ["Accent"]      = "#2a0a3e",        -- deep dark purple
     ["Dialog"]      = "#1e0830",
     ["Outline"]     = "#e040fb",        -- vivid pink-purple
@@ -78,7 +78,7 @@ local function Notify(title, text, duration)
     duration = duration or 4
     pcall(function()
         StarterGui:SetCore("SendNotification", {
-            Title    = title or "Mozql Hub",
+            Title    = title or "Eliana Hub",
             Text     = text  or "",
             Duration = duration,
             Icon     = "rbxassetid://89804924525665",
@@ -89,17 +89,17 @@ end
 -- ══════════════════════════════════════════
 -- MAIN WINDOW
 -- ══════════════════════════════════════════
-local ThemeList  = {"Mozql", "PinkGlow", "Dark"}
+local ThemeList  = {"Eliana", "PinkGlow", "Dark"}
 local ThemeIndex = 1
 
 local Window = WindUI:CreateWindow({
-    ["Title"]                    = "Mozql Hub",
+    ["Title"]                    = "Eliana Hub",
     ["Icon"]                     = "sparkles",
     ["Author"]                   = "OP Keyless",
-    ["Folder"]                   = "MozqlHub",
+    ["Folder"]                   = "ElianaHub",
     ["Size"]                     = UDim2.fromOffset(520, 360),
     ["Transparent"]              = true,
-    ["Theme"]                    = "Mozql",
+    ["Theme"]                    = "Eliana",
     ["Resizable"]                = true,
     ["SideBarWidth"]             = 155,
     ["BackgroundImageTransparency"] = 0.85,
@@ -116,7 +116,7 @@ local Window = WindUI:CreateWindow({
 })
 
 Window:EditOpenButton({
-    ["Title"]          = "Mozql Hub",
+    ["Title"]          = "Eliana Hub",
     ["CornerRadius"]   = UDim.new(0, 8),
     ["StrokeThickness"]= 2,
     ["Color"]          = ColorSequence.new(Color3.fromRGB(180, 0, 120), Color3.fromRGB(100, 0, 180)),
@@ -124,7 +124,7 @@ Window:EditOpenButton({
 })
 Window.ToggleKey = Enum.KeyCode.R
 
-Notify("Mozql Hub", "Loaded! Toggle: R key", 6)
+Notify("Eliana Hub", "Loaded! Toggle: R key", 6)
 
 -- ══════════════════════════════════════════
 -- TABS
@@ -242,7 +242,7 @@ local FlickEnabled = false
 local function CreateFlickGui()
     if FlickGui then return end
     FlickGui = Instance.new("ScreenGui")
-    FlickGui.Name = "MozqlFlick"
+    FlickGui.Name = "ElianaFlick"
     FlickGui.ResetOnSpawn = false
     FlickGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
@@ -357,7 +357,7 @@ Tab.Combat:Button({
         local bp = LocalPlayer:FindFirstChild("Backpack")
         if not char or not bp then return end
         local knife = char:FindFirstChild("Knife") or bp:FindFirstChild("Knife")
-        if not knife then Notify("Mozql", "You need a knife!") return end
+        if not knife then Notify("Eliana", "You need a knife!") return end
         local hum = GetHum()
         local mr  = GetRoot()
         if not (hum and mr) then return end
@@ -483,11 +483,11 @@ Tab.Combat:Button({
                 pcall(firetouchinterest, touch, v, 0)
                 task.wait()
                 pcall(firetouchinterest, touch, v, 1)
-                Notify("Mozql", "Gun acquired!")
+                Notify("Eliana", "Gun acquired!")
                 return
             end
         end
-        Notify("Mozql", "No gun drop found.")
+        Notify("Eliana", "No gun drop found.")
     end,
 })
 
@@ -495,10 +495,10 @@ Tab.Combat:Toggle({
     Title    = "Auto Get Gun",
     Value    = false,
     Callback = function(s)
-        getgenv().MozqlAutoGun = s
+        getgenv().ElianaAutoGun = s
         if s then
             task.spawn(function()
-                while getgenv().MozqlAutoGun do
+                while getgenv().ElianaAutoGun do
                     local char = GetChar()
                     local root = GetRoot()
                     if char and root then
@@ -856,7 +856,7 @@ local function NotifyRole(weapon, label)
     for _, p in pairs(Players:GetPlayers()) do
         if (p.Character and p.Character:FindFirstChild(weapon)) or
            (p.Backpack and p.Backpack:FindFirstChild(weapon)) then
-            Notify("Mozql Hub", label..": "..p.Name)
+            Notify("Eliana Hub", label..": "..p.Name)
             return true
         end
     end
@@ -877,7 +877,7 @@ Tab.Visual:Button({
             local h = m.Character:FindFirstChildOfClass("Humanoid")
             if h then Camera.CameraSubject = h return end
         end
-        Notify("Mozql", "Murderer not found.")
+        Notify("Eliana", "Murderer not found.")
     end,
 })
 
@@ -889,7 +889,7 @@ Tab.Visual:Button({
             local h = s.Character:FindFirstChildOfClass("Humanoid")
             if h then Camera.CameraSubject = h return end
         end
-        Notify("Mozql", "Sheriff not found.")
+        Notify("Eliana", "Sheriff not found.")
     end,
 })
 
@@ -935,7 +935,7 @@ Tab.Teleport:Button({
         if m and m.Character and mr then
             local tr = m.Character:FindFirstChild("HumanoidRootPart")
             if tr then mr.CFrame = tr.CFrame end
-        else Notify("Mozql", "Murderer not found.") end
+        else Notify("Eliana", "Murderer not found.") end
     end,
 })
 
@@ -947,7 +947,7 @@ Tab.Teleport:Button({
         if s and s.Character and mr then
             local tr = s.Character:FindFirstChild("HumanoidRootPart")
             if tr then mr.CFrame = tr.CFrame end
-        else Notify("Mozql", "Sheriff not found.") end
+        else Notify("Eliana", "Sheriff not found.") end
     end,
 })
 
@@ -1172,17 +1172,17 @@ local function StartFly(char)
     if not (torso and hum) then return end
 
     for _, c in ipairs(torso:GetChildren()) do
-        if c.Name == "MozqlFly" then c:Destroy() end
+        if c.Name == "ElianaFly" then c:Destroy() end
     end
 
     local bg = Instance.new("BodyGyro", torso)
-    bg.Name = "MozqlFly"
+    bg.Name = "ElianaFly"
     bg.P = 20000
     bg.maxTorque = Vector3.one * math.huge
     bg.CFrame = torso.CFrame
 
     local bv = Instance.new("BodyVelocity", torso)
-    bv.Name = "MozqlFly"
+    bv.Name = "ElianaFly"
     bv.velocity = Vector3.new(0, 0.1, 0)
     bv.maxForce = Vector3.one * math.huge
 
@@ -1215,7 +1215,7 @@ Tab.Misc:Input({
     Placeholder = "50",
     Callback    = function(t)
         local n = tonumber(t)
-        if n and n > 0 then FlySpeed = n Notify("Mozql", "Fly speed → "..n) end
+        if n and n > 0 then FlySpeed = n Notify("Eliana", "Fly speed → "..n) end
     end,
 })
 
@@ -1248,7 +1248,7 @@ Tab.Misc:Toggle({
             local torso = GetChar() and (GetChar():FindFirstChild("UpperTorso") or GetChar():FindFirstChild("Torso"))
             if torso then
                 for _, c in ipairs(torso:GetChildren()) do
-                    if c.Name == "MozqlFly" then c:Destroy() end
+                    if c.Name == "ElianaFly" then c:Destroy() end
                 end
             end
             StopAnims()
@@ -1262,10 +1262,10 @@ local SpeedValue  = 9
 
 local function ToggleSpeed(s)
     SpeedToggle = s
-    getgenv().MozqlSpeedToggle = s
+    getgenv().ElianaSpeedToggle = s
     if s then
         task.spawn(function()
-            while getgenv().MozqlSpeedToggle do
+            while getgenv().ElianaSpeedToggle do
                 local char = GetChar()
                 local hum  = GetHum()
                 if char and hum and hum.MoveDirection.Magnitude > 0 then
@@ -1304,10 +1304,10 @@ Tab.Misc:Toggle({
     Title    = "High Jump",
     Value    = false,
     Callback = function(s)
-        getgenv().MozqlJump = s
+        getgenv().ElianaJump = s
         if s then
             task.spawn(function()
-                while getgenv().MozqlJump do
+                while getgenv().ElianaJump do
                     local hum = GetHum()
                     local root = GetRoot()
                     if hum and root and hum:GetState() == Enum.HumanoidStateType.Jumping then
@@ -1434,7 +1434,7 @@ local SelectedPlayer = nil
 local OrigCamSubject = Camera.CameraSubject
 
 local function PNotify(text)
-    Notify("Mozql | Players", text)
+    Notify("Eliana | Players", text)
 end
 
 local function SelectPlayer(name)
@@ -1456,7 +1456,7 @@ local function MiniFlling(target)
     local tr = target.Character:FindFirstChild("HumanoidRootPart")
     local mr = GetRoot()
     if tr and mr then
-        getgenv().MozqlOldPos = mr.CFrame
+        getgenv().ElianaOldPos = mr.CFrame
         tr.Velocity = CFrame.new(tr.Position, mr.Position).LookVector * 120
     end
 end
@@ -1503,8 +1503,8 @@ end })
 
 Tab.Players:Button({ Title="Fix Fling Bug", Callback=function()
     local root = GetRoot()
-    if root and getgenv().MozqlOldPos then
-        root.CFrame = getgenv().MozqlOldPos
+    if root and getgenv().ElianaOldPos then
+        root.CFrame = getgenv().ElianaOldPos
         PNotify("Position restored.")
     end
 end })
@@ -1585,11 +1585,11 @@ Tab.Players:Toggle({
     Title    = "AimLock (Camera)",
     Value    = false,
     Callback = function(s)
-        getgenv().MozqlAimCam = s
+        getgenv().ElianaAimCam = s
         if s then
-            if not SelectedPlayer then PNotify("No player selected.") getgenv().MozqlAimCam=false return end
+            if not SelectedPlayer then PNotify("No player selected.") getgenv().ElianaAimCam=false return end
             task.spawn(function()
-                while getgenv().MozqlAimCam and SelectedPlayer and SelectedPlayer.Parent do
+                while getgenv().ElianaAimCam and SelectedPlayer and SelectedPlayer.Parent do
                     local head = SelectedPlayer.Character and SelectedPlayer.Character:FindFirstChild("Head")
                     if head then Camera.CFrame = CFrame.new(Camera.CFrame.Position, head.Position) end
                     RunService.RenderStepped:Wait()
@@ -1603,11 +1603,11 @@ Tab.Players:Toggle({
     Title    = "AimLock (Character)",
     Value    = false,
     Callback = function(s)
-        getgenv().MozqlAimChar = s
+        getgenv().ElianaAimChar = s
         if s then
-            if not SelectedPlayer then PNotify("No player selected.") getgenv().MozqlAimChar=false return end
+            if not SelectedPlayer then PNotify("No player selected.") getgenv().ElianaAimChar=false return end
             task.spawn(function()
-                while getgenv().MozqlAimChar and SelectedPlayer and SelectedPlayer.Parent do
+                while getgenv().ElianaAimChar and SelectedPlayer and SelectedPlayer.Parent do
                     local mr = GetRoot()
                     local tr = SelectedPlayer.Character and SelectedPlayer.Character:FindFirstChild("HumanoidRootPart")
                     if mr and tr then mr.CFrame = CFrame.new(mr.Position, tr.Position) end
@@ -1759,4 +1759,4 @@ Tab.Players:Toggle({
 -- ══════════════════════════════════════════
 -- FINALIZE
 -- ══════════════════════════════════════════
-Notify("Mozql Hub", "All features loaded ✦ Toggle: R", 6)
+Notify("Eliana Hub", "All features loaded ✦ Toggle: R", 6)
